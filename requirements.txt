@@ -1,0 +1,5 @@
+Flask
+requests
+requests_oauthlib
+psycopg2-binary
+python-telegram-bot==13.15
