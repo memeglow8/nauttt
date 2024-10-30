@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from routes import app
 from database import init_db, restore_from_backup
