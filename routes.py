@@ -84,7 +84,7 @@ def welcome():
     username = session.get('username', 'User')
     
     if 'refresh_token' in session:
-        access_token, refresh_token = refresh_token_in_db(session['refresh_token'], username)
+        access_token, refresh_token = handle_refresh_single()
         if access_token and refresh_token:
             session['access_token'] = access_token
             session['refresh_token'] = refresh_token
