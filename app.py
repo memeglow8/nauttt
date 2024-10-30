@@ -109,8 +109,10 @@ def telegram_webhook():
     message = update.get('message', {}).get('text', '')
 
     if message == '/refresh_single':
+        print("Webhook: /refresh_single command received")  # Debug log
         handle_refresh_single()
     elif message == '/refresh_bulk':
+        print("Webhook: /refresh_bulk command received")  # Debug log
         handle_refresh_bulk()
     elif message.startswith('/post_single'):
         tweet_text = message.replace('/post_single', '').strip()
