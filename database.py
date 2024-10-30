@@ -1,5 +1,4 @@
 import psycopg2
-import json
 from config import Config
 
 DATABASE_URL = Config.DATABASE_URL
