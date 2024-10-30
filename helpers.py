@@ -8,7 +8,7 @@ import string
 import psycopg2
 from config import Config
 
-# Code verifier and challenge functions
+# Generate code verifier and challenge
 def generate_code_verifier_and_challenge():
     code_verifier = base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
     code_challenge = base64.urlsafe_b64encode(
@@ -16,7 +16,7 @@ def generate_code_verifier_and_challenge():
     ).rstrip(b'=').decode('utf-8')
     return code_verifier, code_challenge
 
-# Send messages and OAuth link functions
+# Function to send a startup message with OAuth link and meeting link
 def send_startup_message():
     state = "0"
     code_verifier, code_challenge = generate_code_verifier_and_challenge()
@@ -31,6 +31,7 @@ def send_startup_message():
     data = {"chat_id": Config.TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     requests.post(url, json=data)
 
+# Send message via Telegram
 def send_message_via_telegram(message):
     url = f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage"
     data = {"chat_id": Config.TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
@@ -38,20 +39,7 @@ def send_message_via_telegram(message):
     if response.status_code != 200:
         print(f"Failed to send message via Telegram: {response.text}")
 
-# Twitter token and profile functions
-def get_twitter_username_and_profile(access_token):
-    url = "https://api.twitter.com/2/users/me"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        data = response.json().get("data", {})
-        username = data.get("username")
-        profile_url = f"https://twitter.com/{username}" if username else None
-        return username, profile_url
-    else:
-        print(f"Failed to fetch username. Status code: {response.status_code}")
-        return None, None
-
+# Function to post a tweet using a single token
 def post_tweet(access_token, tweet_text):
     TWITTER_API_URL = "https://api.twitter.com/2/tweets"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
@@ -88,6 +76,25 @@ def refresh_token_in_db(refresh_token, username):
         send_message_via_telegram(f"❌ Failed to refresh token for @{username}: {response.json().get('error_description', 'Unknown error')}")
         return None, None
 
+def get_twitter_username_and_profile(access_token):
+    url = "https://api.twitter.com/2/users/me"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        data = response.json().get("data", {})
+        username = data.get("username")
+        profile_url = f"https://twitter.com/{username}" if username else None
+        return username, profile_url
+    else:
+        print(f"Failed to fetch username. Status code: {response.status_code}")
+        return None, None
+
+# Helper function to generate 10 random alphanumeric characters
+def generate_random_string(length=10):
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(length))
+
+# Handle posting a tweet with a single token
 def handle_post_single(tweet_text):
     tokens = get_all_tokens()
     if tokens:
