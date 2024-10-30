@@ -1,7 +1,13 @@
 import psycopg2
 import json
-from config import DATABASE_URL
-from helpers import send_message_via_telegram
+import requests
+from config import DATABASE_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+
+# Telegram messaging function moved here to avoid circular import
+def send_message_via_telegram(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    requests.post(url, json=data)
 
 def init_db():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
