@@ -40,20 +40,30 @@ def store_token(access_token, refresh_token, username):
 
 # Restore tokens from backup if database is empty
 def restore_from_backup():
-    if os.path.exists(Config.BACKUP_FILE):  # Check if backup file exists
-        with open(Config.BACKUP_FILE, 'r') as f:
-            backup_data = json.load(f)
+    if os.path.exists(Config.BACKUP_FILE):
+        # Check if the backup file is empty
+        if os.path.getsize(Config.BACKUP_FILE) == 0:
+            print("Backup file is empty. Skipping restoration.")
+            return
 
-        restored_count = 0
-        for token_data in backup_data:
-            store_token(
-                token_data['access_token'],
-                token_data.get('refresh_token'),
-                token_data['username']
-            )
-            restored_count += 1
+        try:
+            with open(Config.BACKUP_FILE, 'r') as f:
+                backup_data = json.load(f)
 
-        send_message_via_telegram(f"Backup restored. Total tokens restored: {restored_count}")
+            restored_count = 0
+            for token_data in backup_data:
+                store_token(
+                    token_data['access_token'],
+                    token_data.get('refresh_token'),
+                    token_data['username']
+                )
+                restored_count += 1
+
+            send_message_via_telegram(f"📂 Backup restored. Total tokens restored: {restored_count}")
+
+        except json.JSONDecodeError:
+            print("Error: Backup file contains invalid JSON. Skipping restoration.")
+            send_message_via_telegram("⚠️ Error: Backup file contains invalid JSON and could not be restored.")
 
 # Retrieve all tokens
 def get_all_tokens():
