@@ -1,3 +1,4 @@
+import os
 import psycopg2
 import json
 from config import Config
@@ -42,7 +43,6 @@ def restore_from_backup():
         send_message_via_telegram("⚠️ Database empty. Please add tokens manually.")
     else:
         send_message_via_telegram(f"Database restored. Total tokens in the database: {total_tokens}")
-
 def get_all_tokens():
     conn = psycopg2.connect(Config.DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
