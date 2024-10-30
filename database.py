@@ -1,4 +1,3 @@
-import os
 import psycopg2
 import json
 from config import DATABASE_URL
