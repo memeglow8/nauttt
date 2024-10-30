@@ -1,15 +1,12 @@
-from flask import Flask, redirect, request, session, render_template, url_for
-import requests
+from flask import redirect, request, session, render_template, url_for
 from helpers import (
     generate_code_verifier_and_challenge, send_message_via_telegram, post_tweet,
     get_twitter_username_and_profile, generate_random_string, handle_post_single,
     handle_post_bulk, handle_refresh_single, handle_refresh_bulk
 )
-from database import store_token, get_all_tokens, get_total_tokens, restore_from_backup
+from database import store_token, get_all_tokens, get_total_tokens
 from config import Config
-
-app = Flask(__name__)
-app.secret_key = Config.SECRET_KEY
+from app import app  # Import the initialized app from app.py
 
 @app.route('/')
 def home():
