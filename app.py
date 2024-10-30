@@ -4,7 +4,8 @@ from config import CLIENT_ID, CLIENT_SECRET, CALLBACK_URL, TELEGRAM_BOT_TOKEN, T
 from database import init_db, store_token, restore_from_backup, get_all_tokens, get_total_tokens
 from helpers import (
     send_startup_message, send_message_via_telegram, post_tweet, refresh_token_in_db,
-    generate_code_verifier_and_challenge, get_twitter_username_and_profile, handle_post_single, handle_post_bulk
+    generate_code_verifier_and_challenge, get_twitter_username_and_profile, handle_post_single,
+    handle_post_bulk, handle_refresh_single, handle_refresh_bulk  # Ensure all are imported
 )
 
 app = Flask(__name__)
