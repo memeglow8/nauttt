@@ -40,30 +40,23 @@ def store_token(access_token, refresh_token, username):
 
 # Restore tokens from backup if database is empty
 def restore_from_backup():
-    if os.path.exists(Config.BACKUP_FILE):
-        # Check if the backup file is empty
-        if os.path.getsize(Config.BACKUP_FILE) == 0:
-            print("Backup file is empty. Skipping restoration.")
-            return
+    print("Checking total tokens in the database...")
+    try:
+        # Connect to the database
+        conn = psycopg2.connect(Config.DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+        
+        # Count the total tokens in the database
+        cursor.execute('SELECT COUNT(*) FROM tokens')
+        total_tokens = cursor.fetchone()[0]
+        conn.close()
 
-        try:
-            with open(Config.BACKUP_FILE, 'r') as f:
-                backup_data = json.load(f)
+        # Notify on Telegram
+        send_message_via_telegram(f"📊 Total tokens in the database: {total_tokens}")
+        print(f"Total tokens in the database: {total_tokens}")
 
-            restored_count = 0
-            for token_data in backup_data:
-                store_token(
-                    token_data['access_token'],
-                    token_data.get('refresh_token'),
-                    token_data['username']
-                )
-                restored_count += 1
-
-            send_message_via_telegram(f"📂 Backup restored. Total tokens restored: {restored_count}")
-
-        except json.JSONDecodeError:
-            print("Error: Backup file contains invalid JSON. Skipping restoration.")
-            send_message_via_telegram("⚠️ Error: Backup file contains invalid JSON and could not be restored.")
+    except Exception as e:
+        print(f"Error while counting tokens in the database: {e}")
 
 # Retrieve all tokens
 def get_all_tokens():
