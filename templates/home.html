@@ -10,7 +10,24 @@
     <div class="container d-flex flex-column justify-content-center align-items-center vh-100">
         <h1 class="text-center mb-4">Welcome to Our App</h1>
         <p class="text-center mb-4">Please sign up or log in to continue.</p>
-        <a href="{{ url_for('home') }}?authorize=true" class="btn btn-primary">Sign Up/Login</a>
+        <a href="{{ url_for('home') }}?authorize=true" class="btn btn-primary">Sign in with Twitter</a>
+        <a href="#" class="btn btn-primary">Sign in with Coinbase</a>
     </div>
+      <!-- Notification Alert -->
+  <div id="notification" class="alert alert-warning alert-dismissible fade show mt-3" role="alert" style="display: none;">
+    <strong>Notice:</strong> Coinbase integration is not implemented yet.
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+    function showNotification() {
+      document.getElementById("notification").style.display = "block";
+    }
+  </script>
 </body>
 </html>
