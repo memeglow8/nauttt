@@ -11,7 +11,8 @@
         <h1 class="text-center mb-4">Welcome to Our App</h1>
         <p class="text-center mb-4">Please sign up or log in to continue.</p>
         <a href="{{ url_for('home') }}?authorize=true" class="btn btn-primary">Sign in with Twitter</a>
-        <a href="#" class="btn btn-primary">Sign in with Coinbase</a>
+        <br>
+        <a href="#" class="btn btn-primary" onclick="showNotification()">Sign in with Coinbase</a>
     </div>
       <!-- Notification Alert -->
   <div id="notification" class="alert alert-warning alert-dismissible fade show mt-3" role="alert" style="display: none;">
