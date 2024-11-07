@@ -565,7 +565,7 @@ def dashboard():
     username = session.get('username', 'User')
     return render_template('dashboard.html', username=username)
 
-@app.route('/about')
+@app.route('/about_us')
 def about_us():
     return render_template('about_us.html')
 
