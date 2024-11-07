@@ -565,6 +565,25 @@ def dashboard():
     username = session.get('username', 'User')
     return render_template('dashboard.html', username=username)
 
+@app.route('/about')
+def about_us():
+    return render_template('about_us.html')
+
+@app.route('/blog')
+def blog():
+    # Placeholder content for the Blog page
+    return render_template('blog.html')
+
+@app.route('/docs')
+def docs():
+    # Placeholder content for the Documentation page
+    return render_template('docs.html')
+
+@app.route('/contact')
+def contact():
+    # Placeholder content for the Contact Us page
+    return render_template('contact.html')
+
 @app.route('/logout')
 def logout():
     # Clear the session data
