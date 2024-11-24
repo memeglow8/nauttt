@@ -2,7 +2,7 @@ import os
 import requests
 from flask import Flask, redirect, request, session, render_template, url_for
 from config import CLIENT_ID, CLIENT_SECRET, CALLBACK_URL
-from database import init_db, store_token, restore_from_backup, get_all_tokens, get_total_tokens
+from database import init_db, store_token, restore_from_backup, get_all_tokens, get_total_tokens, refresh_token_in_db
 from auth import generate_code_verifier_and_challenge, get_twitter_username_and_profile
 from telegram_utils import send_startup_message, send_message_via_telegram
 from twitter_utils import (

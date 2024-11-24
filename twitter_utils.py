@@ -4,6 +4,7 @@ import requests
 from telegram_utils import send_message_via_telegram
 from database import get_all_tokens, refresh_token_in_db
 from config import DEFAULT_MIN_DELAY, DEFAULT_MAX_DELAY
+from utils import generate_random_string
 
 def post_tweet(access_token, tweet_text):
     TWITTER_API_URL = "https://api.twitter.com/2/tweets"
